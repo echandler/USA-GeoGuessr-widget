@@ -5,7 +5,7 @@ Interactive USA map widget for GeoGuessr.com. When the player correctly selects 
 1. Install greasemokey or tampermonkey.
 2. Create a new script and delete the default contents.
 3. Copy everything in src.js to the new script and then save the script.
-4. Save and reload GeoGuessr.com.
+4. Reload the GeoGuessr website.
 
 ### Instructions:
 
