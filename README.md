@@ -1,5 +1,5 @@
 # USA GeoGuessr widget
-Interactive USA map widget for GeoGuessr.com. When the player correctly selects the state that the location is in, the state will be highlighted on the widget automatically.
+Interactive USA map widget for GeoGuessr.com. When the player correctly selects the state that the location is in the state will be highlighted on the widget automatically.
 
 ### How to use:
 1. Install greasemokey or tampermonkey.
