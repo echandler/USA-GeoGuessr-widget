@@ -12,3 +12,5 @@ Interactive USA map widget for GeoGuessr.com
 * Move widget: Hover pointer over the USA widget, hold the left mouse button down and drag it around.
 * Resize widget: Hover the pointer over the USA widget and rotate the scroll wheel on your mouse, easy peezy.
 * Toggle state color: Click on the state with left mouse button.
+
+Disclaimer: The free geolocation service that the extension uses has a hard time with locations next to borders, especially in rural locations. If it doesn't highlight the state automatically the player would need to click on the map manually to select it.
