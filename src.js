@@ -47,7 +47,7 @@ runAsClient(() => {
                 clearInterval(timer);
 
                 // Make sure it is on end-of-round page.
-                if (localStorage.usadisplay === "false" || !document.querySelector("[data-qa=guess-description]")) return;
+                if (!document.querySelector("[data-qa=guess-description]")) return;
 
                 fetch(`https://nominatim.openstreetmap.org/reverse.php?format=json&lat=${this.position.lat()}&lon=${this.position.lng()}`)
                     .then(response => response.json())
@@ -110,7 +110,6 @@ runAsClient(() => {
     bdy.setAttribute('style', ' position: fixed; top: 3rem; z-index: 90000;');
     bdy.id = "usa";
     bdy.scale = 1;
-    bdy.style.display = localStorage.usadisplay === "true" ? "" : "none";
 
     bdy.addEventListener('mousewheel', function(e) {
         // Make the USA map zoom in and out.
