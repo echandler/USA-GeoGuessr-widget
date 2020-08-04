@@ -116,10 +116,14 @@ runAsClient(() => {
         e.preventDefault();
         let svg = this.querySelector("#svg_usa");
         if (e.wheelDelta == 120) {
-            svg.style.transform = "scale(" + (bdy.scale += 0.25) + ")";
+            bdy.scale += 0.25;
+            svg.style.width  = 250 * bdy.scale + "px";
+            svg.style.height = 170 * bdy.scale + "px";
         } else {
             if (bdy.scale - 0.25 < 0.5) return;
-            svg.style.transform = "scale(" + (bdy.scale -= 0.25) + ")";
+            bdy.scale -= 0.25;
+            svg.style.width  = 250 * bdy.scale + "px";
+            svg.style.height = 170 * bdy.scale + "px";
         }
     });
 
