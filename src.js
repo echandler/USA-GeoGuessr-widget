@@ -4,7 +4,7 @@
 // @version      0.1
 // @description  Interactive USA map for GeoGuessr.com.
 // @include      https://www.geoguessr.com/*
-// @run-at       document-start
+// @run-at       document-idle
 // @license      MIT
 // ==/UserScript==
 
