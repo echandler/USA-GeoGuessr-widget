@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         GeoGuessr USA widget
-// @namespace    http://tampermonkey.net/
+// @namespace    GeoGuessr scripts
 // @version      1.0
 // @description  Interactive USA map for GeoGuessr.com.
 // @include      https://www.geoguessr.com/*
