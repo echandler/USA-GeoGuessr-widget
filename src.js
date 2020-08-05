@@ -53,8 +53,6 @@ runAsClient(() => {
                     let url = `https://nominatim.openstreetmap.org/reverse.php?format=json&zoom=5&
                            lat=${this.position.lat()}&
                            lon=${this.position.lng()}`;
-                    // https://nominatim.openstreetmap.org/reverse?format=xml&lat=38.565343&lon=-75.701977&format=json -> Delaware
-                    // https://nominatim.openstreetmap.org/reverse?format=xml&lat=38.565343&lon=-75.701977&format=json&zoom=5 ->
                     let p = fetch(url)
                         .then((response) => response.json())
                         .then((data) => {
