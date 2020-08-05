@@ -49,7 +49,8 @@ runAsClient(() => {
 
                     // Make sure it is on end-of-round page.
                     if (!document.querySelector("[data-qa=guess-description]")) return;
-
+                    
+                    // Adding zoom=5 appears to get more accurate results.
                     let url = `https://nominatim.openstreetmap.org/reverse.php?format=json&zoom=5&
                            lat=${this.position.lat()}&
                            lon=${this.position.lng()}`;
