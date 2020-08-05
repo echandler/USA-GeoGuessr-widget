@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoGuessr USA widget
 // @namespace    GeoGuessr scripts
-// @version      1.0
+// @version      2.0
 // @description  Interactive USA map for GeoGuessr.com.
 // @include      https://www.geoguessr.com/*
 // @run-at       document-idle
@@ -9,161 +9,164 @@
 // ==/UserScript==
 
 function runAsClient(f) {
-    // inject code to be run. This is needed (via toString) because functions
+    // Inject code to be run. This is needed (via toString) because functions
     // created inside GreaseMonkey/TamperMonkey may be sandboxed, which gets
     // awkward.
-    var s = document.createElement('script');
-    s.type = 'text/javascript';
+    var s = document.createElement("script");
+    s.type = "text/javascript";
     s.text = "(" + f.toString() + ")()";
     document.body.appendChild(s);
 }
 
 runAsClient(() => {
     let stateColors = {
-        active: '#cc302e', // GeoGuessr red.
-        stroke: '#fefefe' // Geoguessr off white.
+        active: "#cc302e", // GeoGuessr red.
+        inactive: "#D3D3D3",
+        outline: "#fefefe", // Geoguessr off white.
     };
 
-    var ttt = setInterval(function() {
+    var waitOnGoog = setInterval(function () {
         // Wait for google global variable to be loaded.
         if (!window.google) return;
-        clearInterval(ttt);
-        runThis();
+        clearInterval(waitOnGoog);
+        app();
     }, 100);
 
-    function runThis() {
-
+    function app() {
         const google = window.google;
 
         let _first = undefined;
 
         const oldOverlay = google.maps.OverlayView;
-        google.maps.OverlayView = Object.assign(function(...args) {
-            const res = oldOverlay.apply(this, args);
-            let timer = setInterval(() => {
+        google.maps.OverlayView = Object.assign(
+            function (...args) {
+                const res = oldOverlay.apply(this, args);
 
-                if (!this.position) return; // Wait for overlay to get position property.
+                let timer = setInterval(() => {
+                    if (!this.position) return; // Wait for overlay to get position property.
 
-                clearInterval(timer);
+                    clearInterval(timer);
 
-                // Make sure it is on end-of-round page.
-                if (!document.querySelector("[data-qa=guess-description]")) return;
+                    // Make sure it is on end-of-round page.
+                    if (!document.querySelector("[data-qa=guess-description]")) return;
 
-                fetch(`https://nominatim.openstreetmap.org/reverse.php?format=json&lat=${this.position.lat()}&lon=${this.position.lng()}`)
-                    .then(response => response.json())
-                    .then(data => {
+                    let url = `https://nominatim.openstreetmap.org/reverse.php?format=json&zoom=5&
+                           lat=${this.position.lat()}&
+                           lon=${this.position.lng()}`;
+                    // https://nominatim.openstreetmap.org/reverse?format=xml&lat=38.565343&lon=-75.701977&format=json -> Delaware
+                    // https://nominatim.openstreetmap.org/reverse?format=xml&lat=38.565343&lon=-75.701977&format=json&zoom=5 ->
+                    let p = fetch(url)
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (data.error){
+                                console.log(data);
+                                return;
+                            }
+                            if (_first == undefined) {
+                                _first = data.address.state.toLowerCase();
+                                return;
+                            }
 
-                        if (_first == undefined) {
-                            _first = data.address.state;
-                            return;
-                        }
+                            let _second = data.address.state.toLowerCase();
 
-                        let _second = data.address.state;
-                        console.log(_first, _second, _first == _second);
+                            console.log("USA GeoGuessr Widget debugger:", _first, _second, _first == _second);
 
-                        if (_first == _second) {
+                            if (_first == _second) {
+                                // Hightlight the state.
+                                _first = undefined;
 
-                            _first = undefined;
+                                let titles = document.body.querySelector("#svg_usa").querySelectorAll("title");
 
-                            let titles = document.body.querySelector("#svg_usa").querySelectorAll('title')
+                                titles.forEach((t) => {
+                                    if (t.textContent.toLowerCase() == _second) {
+                                        let tparent = t.parentElement;
 
-                            titles.forEach((t) => {
-                                if (t.textContent == _second) {
-                                    if (t.parentElement.getAttribute("fill") !== stateColors.active) {
-                                        t.parentElement.setAttribute("fill", "#302ECC");
-                                        setTimeout(function() {
-                                            t.parentElement.setAttribute("fill", "");
-                                            setTimeout(function() {
-                                                t.parentElement.setAttribute("fill", stateColors.active);
-                                            }, 500);
-                                        }, 500);
-                                    } else {
-                                        t.parentElement.setAttribute("fill", "");
-                                        setTimeout(function() {
-                                            t.parentElement.setAttribute("fill", "#302ECC");
-                                            setTimeout(function() {
-                                                t.parentElement.setAttribute("fill", "");
-                                                setTimeout(function() {
-                                                    t.parentElement.setAttribute("fill", stateColors.active);
+                                        if (tparent.getAttribute("fill") !== stateColors.active) {
+                                            tparent.setAttribute("fill", "#302ECC");
+                                            setTimeout(() => {
+                                                tparent.setAttribute("fill", "");
+                                                setTimeout(() => {
+                                                    tparent.setAttribute("fill", stateColors.active);
                                                 }, 500);
                                             }, 500);
-                                        }, 500);
+                                        } else {
+                                            tparent.setAttribute("fill", "");
+                                            setTimeout(() => {
+                                                tparent.setAttribute("fill", "#302ECC");
+                                                setTimeout(() => {
+                                                    tparent.setAttribute("fill", "");
+                                                    setTimeout(() => {
+                                                        tparent.setAttribute("fill", stateColors.active);
+                                                    }, 500);
+                                                }, 500);
+                                            }, 500);
+                                        }
+
+                                        updateStorage(_second, "insert");
                                     }
-                                    updateStorage(t.textContent, "insert");
-                                }
-                            });
-                        }
+                                });
+                            }
 
-                        _first = undefined;
+                            _first = undefined;
+                        })
+                    .catch((error) => {
+                        console.error(error);
                     });
-            }, 100);
+                }, 100);
 
-            window.ov = this;
+                window.ov = this;
 
-            return res;
-        }, {
-            prototype: oldOverlay.prototype
-        });
+                return res;
+            },
+            {
+                prototype: oldOverlay.prototype,
+            }
+        );
     }
 
-    let bdy = document.createElement('div');
-    bdy.setAttribute('style', ' position: fixed; top: 3rem; z-index: 90000;');
+    let bdy = document.createElement("div");
+    bdy.setAttribute("style", " position: fixed; top: 3rem; z-index: 90000;");
     bdy.id = "usa";
     bdy.scale = 1;
 
-    bdy.addEventListener('mousewheel', function(e) {
+    bdy.addEventListener("mousewheel", function (e) {
         // Make the USA map zoom in and out.
         e.preventDefault();
         let svg = this.querySelector("#svg_usa");
         if (e.wheelDelta == 120) {
             bdy.scale += 0.25;
-            svg.style.width  = 250 * bdy.scale + "px";
+            svg.style.width = 250 * bdy.scale + "px";
             svg.style.height = 170 * bdy.scale + "px";
         } else {
             if (bdy.scale - 0.25 < 0.5) return;
             bdy.scale -= 0.25;
-            svg.style.width  = 250 * bdy.scale + "px";
+            svg.style.width = 250 * bdy.scale + "px";
             svg.style.height = 170 * bdy.scale + "px";
         }
     });
 
-    bdy.addEventListener('mouseover', function(e) {
-        this.querySelector("#clearBtn").style.visibility = '';
-    });
-    
-    bdy.addEventListener('mouseout', function(e) {
-        this.querySelector("#clearBtn").style.visibility = 'hidden';
+    bdy.addEventListener("mouseover", function (e) {
+        this.querySelector("#clearBtn").style.visibility = "";
     });
 
-    let clearBtn = document.createElement('div');
+    bdy.addEventListener("mouseout", function (e) {
+        this.querySelector("#clearBtn").style.visibility = "hidden";
+    });
+
+    let clearBtn = document.createElement("div");
     clearBtn.textContent = "Clear map";
-    clearBtn.id = 'clearBtn';
-    clearBtn.style.cssText = 'visibility: hidden; font-size: 12px; cursor: pointer; margin-left: 1em;width: fit-content; padding: 4px 5px; background: white; border-radius: 0.25rem;';
-    
-    clearBtn.addEventListener('click', function(e) {
-        if (!confirm("Do you want to reset the map?")) {
-            console.log('hi');
-            return;
-        }
-        let paths = document.body.querySelector("#svg_usa").querySelectorAll('path');
-        paths.forEach(path => {
+    clearBtn.id = "clearBtn";
+    clearBtn.style.cssText =
+        "visibility: hidden; font-size: 12px; cursor: pointer; margin-left: 1em;width: fit-content; padding: 4px 5px; background: white; border-radius: 0.25rem;";
 
-            if (path.getAttribute('fill') == stateColors.active) {
-                path.setAttribute('fill', '');
-            }
-            if (path.firstElementChild && path.firstElementChild.textContent) {
-                updateStorage(path.firstElementChild.textContent, 'remove');
-            }
-        });
-
-    });
+    clearBtn.addEventListener("click", clearMap);
 
     var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute('width', '250');
-    svg.setAttribute('height', '170');
-    svg.setAttribute('id', "svg_usa");
+    svg.setAttribute("width", "250");
+    svg.setAttribute("height", "170");
+    svg.setAttribute("id", "svg_usa");
     svg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-    svg.setAttribute('viewBox', '0 0 950 600');
+    svg.setAttribute("viewBox", "0 0 950 600");
     svg.setAttribute("style", "pointer-events: all; transform-origin: left top;");
 
     bdy.appendChild(clearBtn);
@@ -177,24 +180,17 @@ runAsClient(() => {
     svg.innerHTML = `
     <defs xmlns="http://www.w3.org/2000/svg">
       <style type="text/css">
+        .state {fill:${stateColors.inactive};}
 
+        /*
+        the .state class sets the default fill color for all states.
 
-    .state {fill:#D3D3D3;}
+        individual states (such as Kansas, Montana, Pennsylvania) can be colored as follows:
 
-    /*
-    the .state class sets the default fill color for all states.
+        #ks, #MT, #PA {fill:#0000FF;}
 
-    individual states (such as Kansas, Montana, Pennsylvania) can be colored as follows:
-
-    #ks, #MT, #PA {fill:#0000FF;}
-
-    place this code in the empty space below.
-    */
-
-
-
-
-
+        place this code in the empty space below.
+        */
       </style>
     </defs>
     <path xmlns="http://www.w3.org/2000/svg" id="frames" fill="none" stroke="#A9A9A9" stroke-width="2" d="M215 493v55l36 45M0 425h147l68 68h85l54 54v46"/>
@@ -357,43 +353,42 @@ runAsClient(() => {
     </g>
     `;
 
+    // Initiate paths.
+    let paths = document.body.querySelector("#svg_usa").querySelectorAll("path");
+    let prevState = JSON.parse(localStorage.getItem("usa"));
 
-    let paths = document.body.querySelector("#svg_usa").querySelectorAll('path')
-    let _prevState = JSON.parse(localStorage.getItem('usa'));
+    paths.forEach((path) => {
+        if (path.getAttribute("id") == "frames") return;
 
-    paths.forEach((t) => {
-        if (t.getAttribute('id') == 'frames') return;
+        path.addEventListener("mousedown", function () {
+            path.addEventListener("mousemove", _mouseMove);
+            path.addEventListener("mouseup", _mouseUp);
 
-        t.addEventListener('mousedown', function() {
-            t.addEventListener('mousemove', mmove);
-            t.addEventListener('mouseup', mup);
-
-            function mup(e) {
-                var color = t.getAttribute('fill');
+            function _mouseUp(e) {
+                var color = path.getAttribute("fill");
                 if (color == stateColors.active) {
-                    t.setAttribute('fill', '');
-                    updateStorage(t.firstElementChild.textContent, "remove");
+                    path.setAttribute("fill", "");
+                    updateStorage(path.firstElementChild.textContent, "remove");
                 } else {
-                    t.setAttribute('fill', stateColors.active);
-                    updateStorage(t.firstElementChild.textContent, "insert");
+                    path.setAttribute("fill", stateColors.active);
+                    updateStorage(path.firstElementChild.textContent, "insert");
                 }
-                t.removeEventListener('mousemove', mmove);
-                t.removeEventListener('mouseup', mup);
+                path.removeEventListener("mousemove", _mouseMove);
+                path.removeEventListener("mouseup", _mouseUp);
             }
 
-            function mmove() {
-                t.removeEventListener('mousemove', mmove);
-                t.removeEventListener('mouseup', mup);
+            function _mouseMove() {
+                path.removeEventListener("mousemove", _mouseMove);
+                path.removeEventListener("mouseup", _mouseUp);
             }
         });
 
-        t.setAttribute("style", `transition: 0.5s; stroke: ${stateColors.stroke}; stroke-width:2px; cursor: pointer;`);
+        path.setAttribute("style", `transition: 0.5s; stroke: ${stateColors.outline}; stroke-width:2px; cursor: pointer;`);
 
-        if (_prevState !== null && t.firstElementChild && _prevState.some(name => name == t.firstElementChild.textContent)) {
-            t.setAttribute('fill', stateColors.active);
+        if (prevState !== null && path.firstElementChild && prevState.some((name) => name == path.firstElementChild.textContent)) {
+            path.setAttribute("fill", stateColors.active);
         }
     });
-
 
     function dragElement(elmnt) {
         // Copied from WC3 website.
@@ -430,8 +425,8 @@ runAsClient(() => {
             pos3 = e.clientX;
             pos4 = e.clientY;
             // set the element's new position:
-            elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-            elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            elmnt.style.top = elmnt.offsetTop - pos2 + "px";
+            elmnt.style.left = elmnt.offsetLeft - pos1 + "px";
         }
 
         function closeDragElement() {
@@ -442,38 +437,28 @@ runAsClient(() => {
     }
 
     function updateStorage(state, action) {
-        let data = localStorage.getItem("usa");
+        let data = JSON.parse(localStorage.getItem("usa_widget")) || [];
 
-        if (data == null) {
-            data = [];
-        } else {
-            data = JSON.parse(data);
-        }
-
-        if (action == 'remove') {
-            data = data.filter(text => text != state);
-        } else if (!data.some(text => text == state)) {
+        if (action == "remove") {
+            data = data.filter((text) => text != state);
+        } else if (!data.some((text) => text == state)) {
             data.push(state);
         }
 
-        localStorage.setItem('usa', JSON.stringify(data));
+        localStorage.setItem("usa_widget", JSON.stringify(data));
     }
 
-    function clearMap(e) {
-        if (!confirm("Do you want to reset the map?")) {
-            return;
-        }
+    function clearMap() {
+        if (!confirm("Do you want to reset the map?")) return;
 
-        let paths = document.body.querySelector("#svg_usa").querySelectorAll('path');
-        paths.forEach(path => {
-
-            if (path.getAttribute('fill') == stateColors.active) {
-                path.setAttribute('fill', '');
+        let paths = document.body.querySelector("#svg_usa").querySelectorAll("path");
+        paths.forEach((path) => {
+            if (path.getAttribute("fill") == stateColors.active) {
+                path.setAttribute("fill", "");
             }
             if (path.firstElementChild && path.firstElementChild.textContent) {
-                updateStorage(path.firstElementChild.textContent, 'remove');
+                updateStorage(path.firstElementChild.textContent, "remove");
             }
         });
-
     }
 });
