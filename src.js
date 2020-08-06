@@ -26,10 +26,10 @@ runAsClient(() => {
     };
 
     // Modify the google global object.
-    waitForGoog().then(() => modifyGoogOverlay());
+    waitForGoog().then(modifyGoogOverlay);
 
     let bdy = document.createElement("div");
-    bdy.setAttribute("style", " position: fixed; top: 3rem; z-index: 90000;");
+    bdy.style.cssText = "position: fixed; top: 3rem; z-index: 90000;";
     bdy.id = "usa";
     bdy.scale = 1;
 
