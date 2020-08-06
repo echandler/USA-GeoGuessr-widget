@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoGuessr USA widget
 // @namespace    GeoGuessr scripts
-// @version      3.0
+// @version      4.0
 // @description  Interactive USA map for GeoGuessr.com.
 // @include      https://www.geoguessr.com/*
 // @run-at       document-idle
@@ -60,8 +60,7 @@ runAsClient(() => {
     let clearBtn = document.createElement("div");
     clearBtn.textContent = "Clear map";
     clearBtn.id = "clearBtn";
-    clearBtn.style.cssText =
-        "visibility: hidden; font-size: 12px; cursor: pointer; margin-left: 1em;width: fit-content; padding: 4px 5px; background: white; border-radius: 0.25rem;";
+    clearBtn.style.cssText = "visibility: hidden; font-size: 12px; cursor: pointer; margin-left: 1em;width: fit-content; padding: 4px 5px; background: white; border-radius: 0.25rem;";
 
     clearBtn.addEventListener("click", clearMap);
 
@@ -92,6 +91,18 @@ runAsClient(() => {
             stroke: ${stateColors.outline};
             stroke-width:2px;
             transition: 0.5s;
+        }
+
+        .blink{
+          animation-name: example;
+          animation-duration: 2s;
+          animation-fill-mode: forwards;
+        }
+
+        @keyframes example {
+
+          60% {fill: #302ECC; }
+          100% {fill: ${stateColors.active};}
         }
         /*
         the .state class sets the default fill color for all states.
@@ -397,24 +408,16 @@ runAsClient(() => {
                 let tparent = t.parentElement;
 
                 if (tparent.getAttribute("fill") !== stateColors.active) {
-                    tparent.setAttribute("fill", "#302ECC");
+                    tparent.classList.add("blink");
                     setTimeout(() => {
-                        tparent.setAttribute("fill", "");
-                        setTimeout(() => {
-                            tparent.setAttribute("fill", stateColors.active);
-                        }, 500);
-                    }, 500);
+                        tparent.classList.remove("blink");
+                        tparent.setAttribute("fill", stateColors.active);
+                    }, 2000);
                 } else {
-                    tparent.setAttribute("fill", "");
+                    tparent.classList.add("blink");
                     setTimeout(() => {
-                        tparent.setAttribute("fill", "#302ECC");
-                        setTimeout(() => {
-                            tparent.setAttribute("fill", "");
-                            setTimeout(() => {
-                                tparent.setAttribute("fill", stateColors.active);
-                            }, 500);
-                        }, 500);
-                    }, 500);
+                        tparent.classList.remove("blink");
+                    }, 2000);
                 }
             }
         });
