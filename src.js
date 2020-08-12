@@ -1,86 +1,87 @@
 // ==UserScript==
 // @name         GeoGuessr USA widget
 // @namespace    GeoGuessr scripts
-// @version      4.0
+// @version      5.0
 // @description  Interactive USA map for GeoGuessr.com.
+// @downloadURL  https://cdn.jsdelivr.net/gh/echandler/USA-GeoGuessr-widget/src.js
 // @include      https://www.geoguessr.com/*
 // @run-at       document-idle
 // @license      MIT
 // ==/UserScript==
 
-function runAsClient(f) {
-    // Inject code to be run. This is needed (via toString) because functions
-    // created inside GreaseMonkey/TamperMonkey may be sandboxed, which gets
-    // awkward.
-    var s = document.createElement("script");
-    s.type = "text/javascript";
-    s.text = "(" + f.toString() + ")()";
-    document.body.appendChild(s);
-}
-
 runAsClient(() => {
+    let showDebugPopups = true;
+
     let stateColors = {
-        active: "#cc302e", // GeoGuessr red.
-        inactive: "#D3D3D3",
-        outline: "#fefefe", // Geoguessr off white.
+        //https://www.designwizard.com/blog/design-trends/colour-combination
+        active: "#FC766A", // GeoGuessr red.
+        inactive: "#5B84B1",
+        outline: "#FFFFFF", // Geoguessr off white.
     };
+    let aniDuration = 2500; // ms
 
     // Modify the google global object.
     waitForGoog().then(modifyGoogOverlay);
 
     let bdy = document.createElement("div");
-    bdy.style.cssText = "position: fixed; top: 3rem; z-index: 90000;";
-    bdy.id = "usa";
-    bdy.scale = 1;
-
-    bdy.addEventListener("mousewheel", function (e) {
-        // Make the USA map zoom in and out.
-        e.preventDefault();
-        let svg = this.querySelector("#svg_usa");
-        if (e.wheelDelta == 120) {
-            bdy.scale += 0.25;
-            svg.style.width = 250 * bdy.scale + "px";
-            svg.style.height = 170 * bdy.scale + "px";
-        } else {
-            if (bdy.scale - 0.25 < 0.5) return;
-            bdy.scale -= 0.25;
-            svg.style.width = 250 * bdy.scale + "px";
-            svg.style.height = 170 * bdy.scale + "px";
-        }
-    });
+    bdy.style.cssText = "position: fixed; top: 3rem; left:3rem; z-index: 90000;";
+    bdy.id = "usa_fuck_yeah";
+    bdy.clrbtntmr = null;
 
     bdy.addEventListener("mouseover", function (e) {
-        this.querySelector("#clearBtn").style.visibility = "";
+        clearTimeout(bdy.clrbtntmr);
+        this.querySelector(`#${clearBtn.id}`).style.visibility = "";
     });
 
     bdy.addEventListener("mouseout", function (e) {
-        this.querySelector("#clearBtn").style.visibility = "hidden";
+        bdy.clrbtntmr = setTimeout(() => {
+            this.querySelector(`#${clearBtn.id}`).style.visibility = "hidden";
+        }, 300);
     });
 
     let clearBtn = document.createElement("div");
     clearBtn.textContent = "Clear map";
-    clearBtn.id = "clearBtn";
-    clearBtn.style.cssText = "visibility: hidden; font-size: 12px; cursor: pointer; margin-left: 1em;width: fit-content; padding: 4px 5px; background: white; border-radius: 0.25rem;";
+    clearBtn.id = "clearBtn_usa";
+    clearBtn.style.cssText = `visibility: hidden; font-size: 12px; cursor: pointer; margin-left: 1em;
+                              width: fit-content; padding: 4px 5px; background: white;
+                              border-radius: 0.25rem; top: -2em; position: absolute;`;
 
     clearBtn.addEventListener("click", clearMap);
 
-    var svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("width", "250");
-    svg.setAttribute("height", "170");
-    svg.setAttribute("id", "svg_usa");
-    svg.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
-    svg.setAttribute("viewBox", "0 0 950 600");
-    svg.setAttribute("style", "pointer-events: all; transform-origin: left top;");
+    var svgUSAmap = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svgUSAmap.setAttribute("width", "250");
+    svgUSAmap.setAttribute("height", "170");
+    svgUSAmap.setAttribute("id", "svg_usa");
+    svgUSAmap.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
+    svgUSAmap.setAttribute("viewBox", "0 0 950 600");
+    svgUSAmap.setAttribute("style", "pointer-events: all; transform-origin: left top;");
+
+    svgUSAmap.addEventListener("mousewheel", function (e) {
+        if (!this.scale) this.scale = 1;
+        // Make the USA map zoom in and out.
+        e.preventDefault();
+        //let svg = this.querySelector("#svg_usa");
+        if (e.wheelDelta == 120) {
+            this.scale += 0.25;
+            this.style.width = 250 * this.scale + "px";
+            this.style.height = 170 * this.scale + "px";
+        } else {
+            if (this.scale - 0.25 < 0.5) return;
+            this.scale -= 0.25;
+            this.style.width = 250 * this.scale + "px";
+            this.style.height = 170 * this.scale + "px";
+        }
+    });
 
     bdy.appendChild(clearBtn);
-    bdy.appendChild(svg);
+    bdy.appendChild(svgUSAmap);
     document.body.appendChild(bdy);
 
     dragElement(bdy);
 
     //<title xmlns="http://www.w3.org/2000/svg">Blank US states map</title>
 
-    svg.innerHTML = `
+    svgUSAmap.innerHTML = `
     <defs xmlns="http://www.w3.org/2000/svg">
       <style type="text/css">
         .country {
@@ -92,31 +93,61 @@ runAsClient(() => {
             stroke-width:2px;
             transition: 0.5s;
         }
+        .stateSelected {
+            fill: ${stateColors.active};
+        }
+        .countryOnload {
+            fill: transparent;
+            animation: countryInit 2s ease-in;
+            animation-delay: 3s;
+            animation-fill-mode: forwards;
+         }
+
+        .stateOnload {
+            opacity: 0;
+            stroke-dashoffset: 1000;
+            stroke-miterlimit: 10;
+            stroke-dasharray: 1000;
+            animation: stateInit 3s ease-in;
+            animation-delay: 2s;
+            animation-fill-mode: forwards;
+        }
+
+        @keyframes countryInit {
+            to {
+                fill:${stateColors.inactive};
+            }
+        }
+        @keyframes stateInit {
+            to {
+                stroke-dashoffset: 0;
+                opacity: 1;
+            }
+        }
 
         .blink{
           animation-name: example;
-          animation-duration: 2s;
+          animation-duration: ${aniDuration}ms;
           animation-fill-mode: forwards;
         }
-
         @keyframes example {
-
-          60% {fill: #302ECC; }
-          100% {fill: ${stateColors.active};}
+          /* 25% { fill: #535EAC; stroke: #535EAC;}*/
+          30% { fill: #f9f6f3; stroke: #f9f6f3;}
+          /* 75% { fill: #AC538B; stroke: #AC538B;} */
+          100% { fill: ${stateColors.active}; stroke: ${stateColors.outline}; }
         }
         /*
-        the .state class sets the default fill color for all states.
-
+        The .state class sets the default fill color for all states.
         individual states (such as Kansas, Montana, Pennsylvania) can be colored as follows:
-
         #ks, #MT, #PA {fill:#0000FF;}
-
         place this code in the empty space below.
         */
       </style>
     </defs>
+    <!-
     <path xmlns="http://www.w3.org/2000/svg" id="frames" fill="none" stroke="#A9A9A9" stroke-width="2" d="M215 493v55l36 45M0 425h147l68 68h85l54 54v46"/>
-    <g xmlns="http://www.w3.org/2000/svg" class="country">
+    ->
+    <g xmlns="http://www.w3.org/2000/svg" class="country countryOnload">
       <path class="state" id="AK" d="M161.1 453.7l-.3 85.4 1.6 1 3.1.2 1.5-1.1h2.6l.2 2.9 7 6.8.5 2.6 3.4-1.9.6-.2.3-3.1 1.5-1.6 1.1-.2 1.9-1.5 3.1 2.1.6 2.9 1.9 1.1 1.1 2.4 3.9 1.8 3.4 6 2.7 3.9 2.3 2.7 1.5 3.7 5 1.8 5.2 2.1 1 4.4.5 3.1-1 3.4-1.8 2.3-1.6-.8-1.5-3.1-2.7-1.5-1.8-1.1-.8.8 1.5 2.7.2 3.7-1.1.5-1.9-1.9-2.1-1.3.5 1.6 1.3 1.8-.8.8s-.8-.3-1.3-1c-.5-.6-2.1-3.4-2.1-3.4l-1-2.3s-.3 1.3-1 1c-.6-.3-1.3-1.5-1.3-1.5l1.8-1.9-1.5-1.5v-5h-.8l-.8 3.4-1.1.5-1-3.7-.6-3.7-.8-.5.3 5.7v1.1l-1.5-1.3-3.6-6-2.1-.5-.6-3.7-1.6-2.9-1.6-1.1v-2.3l2.1-1.3-.5-.3-2.6.6-3.4-2.4-2.6-2.9-4.8-2.6-4-2.6 1.3-3.2V542l-1.8 1.6-2.9 1.1-3.7-1.1-5.7-2.4h-5.5l-.6.5-6.5-3.9-2.1-.3-2.7-5.8-3.6.3-3.6 1.5.5 4.5 1.1-2.9 1 .3-1.5 4.4 3.2-2.7.6 1.6-3.9 4.4-1.3-.3-.5-1.9-1.3-.8-1.3 1.1-2.7-1.8-3.1 2.1-1.8 2.1-3.4 2.1-4.7-.2-.5-2.1 3.7-.6v-1.3l-2.3-.6 1-2.4 2.3-3.9v-1.8l.2-.8 4.4-2.3 1 1.3h2.7l-1.3-2.6-3.7-.3-5 2.7-2.4 3.4-1.8 2.6-1.1 2.3-4.2 1.5-3.1 2.6-.3 1.6 2.3 1 .8 2.1-2.7 3.2-6.5 4.2-7.8 4.2-2.1 1.1-5.3 1.1-5.3 2.3 1.8 1.3-1.5 1.5-.5 1.1-2.7-1-3.2.2-.8 2.3h-1l.3-2.4-3.6 1.3-2.9 1-3.4-1.3-2.9 1.9h-3.2l-2.1 1.3-1.6.8-2.1-.3-2.6-1.1-2.3.6-1 1-1.6-1.1v-1.9l3.1-1.3 6.3.6 4.4-1.6 2.1-2.1 2.9-.6 1.8-.8 2.7.2 1.6 1.3 1-.3 2.3-2.7 3.1-1 3.4-.6 1.3-.3.6.5h.8l1.3-3.7 4-1.5 1.9-3.7 2.3-4.5 1.6-1.5.3-2.6-1.6 1.3-3.4.6-.6-2.4-1.3-.3-1 1-.2 2.9-1.5-.2-1.5-5.8-1.3 1.3-1.1-.5-.3-1.9-4 .2-2.1 1.1-2.6-.3 1.5-1.5.5-2.6-.6-1.9 1.5-1 1.3-.2-.6-1.8v-4.4l-1-1-.8 1.5h-6.1l-1.5-1.3-.6-3.9-2.1-3.6v-1l2.1-.8.2-2.1 1.1-1.1-.8-.5-1.3.5-1.1-2.7 1-5 4.5-3.2 2.6-1.6 1.9-3.7 2.7-1.3 2.6 1.1.3 2.4 2.4-.3 3.2-2.4 1.6.6 1 .6h1.6l2.3-1.3.8-4.4s.3-2.9 1-3.4c.6-.5 1-1 1-1l-1.1-1.9-2.6.8-3.2.8-1.9-.5-3.6-1.8-5-.2-3.6-3.7.5-3.9.6-2.4-2.1-1.8-1.9-3.7.5-.8 6.8-.5h2.1l1 1h.6l-.2-1.6 3.9-.6 2.6.3 1.5 1.1-1.5 2.1-.5 1.5 2.7 1.6 5 1.8 1.8-1-2.3-4.4-1-3.2 1-.8-3.4-1.9-.5-1.1.5-1.6-.8-3.9-2.9-4.7-2.4-4.2 2.9-1.9h3.2l1.8.6 4.2-.2 3.7-3.6 1.1-3.1 3.7-2.4 1.6 1 2.7-.6 3.7-2.1 1.1-.2 1 .8 4.5-.2 2.7-3.1h1.1l3.6 2.4 1.9 2.1-.5 1.1.6 1.1 1.6-1.6 3.9.3.3 3.7 1.9 1.5 7.1.6 6.3 4.2 1.5-1 5.2 2.6 2.1-.6 1.9-.8 4.8 1.9zM46 482.6l2.1 5.3-.2 1-2.9-.3-1.8-4-1.8-1.5H39l-.2-2.6 1.8-2.4 1.1 2.4 1.5 1.5zm-2.6 33.5l3.7.8 3.7 1 .8 1-1.6 3.7-3.1-.2-3.4-3.6zM22.7 502l1.1 2.6 1.1 1.6-1.1.8-2.1-3.1V502zM9 575.1l3.4-2.3 3.4-1 2.6.3.5 1.6 1.9.5 1.9-1.9-.3-1.6 2.7-.6 2.9 2.6-1.1 1.8-4.4 1.1-2.7-.5-3.7-1.1-4.4 1.5-1.6.3zm48.9-4.5l1.6 1.9 2.1-1.6-1.5-1.3zm2.9 3l1.1-2.3 2.1.3-.8 1.9h-2.4zm23.6-1.9l1.5 1.8 1-1.1-.8-1.9zm8.8-12.5l1.1 5.8 2.9.8 5-2.9 4.4-2.6-1.6-2.4.5-2.4-2.1 1.3-2.9-.8 1.6-1.1 1.9.8 3.9-1.8.5-1.5-2.4-.8.8-1.9-2.7 1.9-4.7 3.6-4.8 2.9zm42.3-19.8l2.4-1.5-1-1.8-1.8 1z" style="">
         <title>Alaska</title>
       </path>
@@ -267,13 +298,24 @@ runAsClient(() => {
       <path class="state" id="WY" d="M353 161.9l-1.5 25.4-4.4 44-2.7-.3-83.3-9.1-27.9-3 2-12 6.9-41 3.8-24.2 1.3-11.2 48.2 7 59.1 6.5z">
         <title>Wyoming</title>
       </path>
-      <g id="DC">
-        <title>District of Columbia</title>
-        <path id="DC1" d="M801.8 253.8l-1.1-1.6-1-.8 1.1-1.6 2.2 1.5z"/>
-        <circle id="DC2" stroke="#FFFFFF" stroke-width="1.5" cx="801.3" cy="251.8" r="5" opacity="1"/> <!-- Set opacity to "0" to hide DC circle -->
-      </g>
+      <path id="DC1" d="M801.8 253.8l-1.1-1.6-1-.8 1.1-1.6 2.2 1.5z"/>
+        <title>Washington, D.C.</title>
+      </path>
     </g>
     `;
+
+    setTimeout(function () {
+        // Remove onload css animations.
+
+        let country = document.body.querySelector(".country");
+        country.classList.remove("countryOnload");
+
+        let paths = document.body.querySelectorAll(".state");
+        paths.forEach((path) => {
+            // Initiate paths.
+            path.classList.remove("stateOnload");
+        });
+    }, 5000);
 
     let paths = document.body.querySelector("#svg_usa").querySelectorAll("path");
     let prevState = _localStorage("get");
@@ -282,17 +324,18 @@ runAsClient(() => {
         // Initiate paths.
         if (path.getAttribute("id") == "frames") return;
 
+        path.classList.add("stateOnload");
+
         path.addEventListener("mousedown", function () {
             path.addEventListener("mousemove", _mouseMove);
             path.addEventListener("mouseup", _mouseUp);
 
             function _mouseUp(e) {
-                var color = path.getAttribute("fill");
-                if (color == stateColors.active) {
-                    path.setAttribute("fill", "");
+                if (path.classList.contains("stateSelected")) {
+                    path.classList.remove("stateSelected");
                     _localStorage("remove", path.firstElementChild.textContent);
                 } else {
-                    path.setAttribute("fill", stateColors.active);
+                    path.classList.add("stateSelected");
                     _localStorage("insert", path.firstElementChild.textContent);
                 }
                 path.removeEventListener("mousemove", _mouseMove);
@@ -306,94 +349,198 @@ runAsClient(() => {
         });
 
         if (path.firstElementChild && prevState.length > 0 && prevState.some((name) => name === path.firstElementChild.textContent.toLowerCase())) {
-            path.setAttribute("fill", stateColors.active);
+            path.classList.add("stateSelected");
         }
     });
 
     function waitForGoog() {
+        let counter = 0;
         return new Promise(function (resolve, f) {
             let int = setInterval(function () {
                 // Wait for google global variable to be loaded.
-                if (!window.google) return;
+                counter++;
+                if (!window.google || counter > 300 /*5 min*/) return;
                 clearInterval(int);
                 resolve();
-            }, 100);
+            }, 1000);
         });
     }
 
     function modifyGoogOverlay() {
         const google = window.google;
 
-        const oldOverlay = google.maps.OverlayView;
-        google.maps.OverlayView = function (...args) {
-            const res = oldOverlay.apply(this, args);
-            this._usaWidgetCallbacks.forEach((func) => func.call(this));
+        google.maps.OverlayView.prototype._usaWidget = { callbacks: [], player: undefined, correct: undefined, bounce: false };
+
+        let oldSetMap = google.maps.OverlayView.prototype.setMap;
+        google.maps.OverlayView.prototype.setMap = function (...args) {
+            let res = oldSetMap.apply(this, args);
+
+            let oldSetPos = this.setPosition;
+            this.setPosition = (...args) => {
+                // setPosition is not a method in the OverlayView prototype.
+                let res = oldSetPos.apply(this, args);
+
+                for (let n = 0; n < this._usaWidget.callbacks.length; n++) {
+                    // Can't use forEach because the dashed line between overlays won't appear for some reason, unless
+                    // the forEach call is wrapped in a setTimout or some other hack.
+                    this._usaWidget.callbacks[n].call(this);
+                }
+
+                return res;
+            };
+
             return res;
         };
 
-        google.maps.OverlayView.prototype = Object.create(oldOverlay.prototype);
+        google.maps.OverlayView.prototype.setMap.prototype = Object.create(oldSetMap.prototype);
 
-        google.maps.OverlayView.prototype._usaWidgetCallbacks = [];
+        google.maps.OverlayView.prototype._usaWidget.callbacks.push(async function () {
+            let data = this._usaWidget;
 
-        google.maps.OverlayView.prototype._usaWidgetCallbacks.push(function () {
-            let timer = setInterval(() => {
-                // Wait for overlay to get position property.
-                if (!this.position) return;
-                clearInterval(timer);
+            if (!isOnEndOfRoundPage()) {
+                data.bounce = false;
+                data.player = undefined;
+                data.correct = undefined;
+                return;
+            } else if (!this.position) {
+                return;
+            } else if (!isInUSA(this.position.lat(), this.position.lng())) {
+                return;
+            } else if (isCorrect(this)) {
+                data.correct = this;
+            } else if (isPlayer(this)) {
+                data.player = this;
+            } else {
+                return;
+            }
 
-                // Make sure it is on end-of-round page.
-                if (!document.querySelector("[data-qa=guess-description]")) return;
+            if (data.bounce || !data.player || !data.correct) {
+                // Make sure it is on end-of-round page and markers are ready.
+                return;
+            }
 
-                checkIfSameState(this).then((name) => {
-                    if (!name) return;
+            // Don't make too many requests to the server.
+            data.bounce = true;
 
-                    let hlsRes = highlightState(name);
+            let name = await checkIfSameState(data.player, data.correct);
 
-                    if (!hlsRes) return;
+            data.bounce = false;
+            data.player = undefined;
+            data.correct = undefined;
 
-                    _localStorage("insert", name);
-                });
-            }, 100);
+            if (!name) return;
+            confetti.start();
+            setTimeout(function () {
+                confetti.stop();
+            }, 5000);
+            let hlsRes = highlightState(name);
+
+            if (!hlsRes) return;
+
+            _localStorage("insert", name);
+        });
+
+        google.maps.OverlayView.prototype._usaWidget.callbacks.push(function () {
+            if (!showDebugPopups) return;
+
+            //  var x = new MutationObserver((e) => {
+            //      if (e[0].removedNodes) {
+            //          let msg = document.getElementById("tempMsg");
+            //          if (msg) {
+            //              msg.parentElement.removeChild(msg);
+            //          }
+            //          // console.log("removed",e, this._data);
+            //          x.disconnect();
+            //      }
+            //  });
+            //
+            //  x.observe(this.div, { childList: true, subtree: true });
+
+            this.div.addEventListener("mouseover", (e) => {
+                let msg = document.getElementById("tempMsg");
+                if (!e.shiftKey && !msg) return;
+
+                if (!msg) {
+                    msg = document.createElement("div");
+                    msg.style.cssText = "z-index: 999999; position: fixed; top: 10px; left: 47%; background: white; padding: 10px;width: 10rem; word-break: break-word;";
+                    msg.id = "tempMsg";
+                    msg.closeTimer = null;
+
+                    msg.addEventListener("mousemove", function (e) {
+                        clearTimeout(this.closeTimer);
+                        this.closeTimer = setTimeout(
+                            function () {
+                                this.parentElement.removeChild(this);
+                            }.bind(this),
+                            5000
+                        );
+                    });
+
+                    document.body.appendChild(msg);
+
+                    var btn = document.createElement("div");
+                    btn.innerText = "Copy Coords";
+                    btn.style.cssText = "width: fit-content; font-size: 12px; cursor: pointer;";
+                    btn.addEventListener("click", function (e) {
+                        txt.select();
+                        document.execCommand("copy");
+                        txt.blur();
+                        txt.style.backgroundColor = "#aaaaaa";
+                        setTimeout(() => {
+                            txt.style.backgroundColor = "";
+                        }, 200);
+                    });
+
+                    var txt = document.createElement("textarea");
+                    txt.style.cssText = "resize: none; border: 0px;";
+
+                    var msc = document.createElement("div");
+
+                    msg.appendChild(txt);
+                    msg.txt = txt;
+                    msg.appendChild(btn);
+                    msg.appendChild(msc);
+                    msg.msc = msc;
+                }
+
+                msg.txt.value = this.position.lat() + ", " + this.position.lng();
+                msg.msc.innerText = this._data && this._data.address ? "State: " + this._data.address.state : "";
+                clearTimeout(msg.closeTimer);
+                msg.closeTimer = setTimeout(() => msg.parentElement.removeChild(msg), 5000);
+            });
         });
 
         return true;
     }
 
-    function checkIfSameState(gobj) {
-        // Adding zoom=5 appears to get more accurate results.
-        let url = `https://nominatim.openstreetmap.org/reverse.php?format=json&zoom=5&
+    async function checkIfSameState(playerObj, correctObj) {
+        let req = function (gobj) {
+            // Adding zoom=5 appears to get more accurate results.
+            let url = `https://nominatim.openstreetmap.org/reverse.php?format=json&zoom=5&
                            lat=${gobj.position.lat()}&
                            lon=${gobj.position.lng()}`;
 
-        return fetch(url)
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.error) {
-                    throw data;
-                }
-                if (checkIfSameState.first == undefined) {
-                    checkIfSameState.first = data.address.state.toLowerCase();
-                    return false;
-                }
-
-                let _second = data.address.state.toLowerCase();
-
-                console.log("USA GeoGuessr Widget debugger:", checkIfSameState.first, _second, checkIfSameState.first == _second);
-
-                if (checkIfSameState.first === _second) {
-                    checkIfSameState.first = undefined;
-                    return _second;
-                }
-
-                checkIfSameState.first = undefined;
-
-                return false;
-            })
-            .catch((error) => {
+            return fetch(url).catch((error) => {
                 console.error(error);
             });
+        };
+
+        playerObj._data = await req(playerObj).then((res) => res.json());
+        correctObj._data = await req(correctObj).then((res) => res.json());
+
+        if (playerObj._data.error) {
+            throw playerObj._data;
+        } else if (correctObj._data.error) {
+            throw correctObj._data;
+        }
+
+        console.log("USA GeoGuessr Widget debugger:", playerObj._data.address.state, correctObj._data.address.state, playerObj._data.address.state === correctObj._data.address.state);
+
+        if (playerObj._data.address.state === correctObj._data.address.state) {
+            return playerObj._data.address.state;
+        }
+        return false;
     }
-    checkIfSameState.first = undefined;
 
     function highlightState(name) {
         name = name.toLowerCase();
@@ -407,17 +554,17 @@ runAsClient(() => {
 
                 let tparent = t.parentElement;
 
-                if (tparent.getAttribute("fill") !== stateColors.active) {
+                if (tparent.classList.contains("stateSelected") !== stateColors.active) {
                     tparent.classList.add("blink");
                     setTimeout(() => {
                         tparent.classList.remove("blink");
-                        tparent.setAttribute("fill", stateColors.active);
-                    }, 2000);
+                        tparent.classList.add("stateSelected");
+                    }, aniDuration);
                 } else {
                     tparent.classList.add("blink");
                     setTimeout(() => {
                         tparent.classList.remove("blink");
-                    }, 2000);
+                    }, aniDuration);
                 }
             }
         });
@@ -495,9 +642,248 @@ runAsClient(() => {
 
         let paths = document.body.querySelector("#svg_usa").querySelectorAll("path");
         paths.forEach((path) => {
-            if (path.getAttribute("fill") == stateColors.active) {
-                path.setAttribute("fill", "");
+            if (path.classList.contains("stateSelected")) {
+                path.classList.remove("stateSelected");
             }
         });
     }
+
+    function isInUSA(lat, lng) {
+        let ne = [49.03419, -70.827284];
+        let sw = [24.37767, -124.966516];
+        return lat < ne[0] && lat > sw[0] && lng < ne[1] && lng > sw[1];
+    }
+
+    function isPlayer(gobj) {
+        return /guess.marker/i.test(gobj.div.innerHTML);
+    }
+
+    function isCorrect(gobj) {
+        return /correct.location/i.test(gobj.div.innerHTML);
+    }
+
+    function isOnEndOfRoundPage() {
+        return document.querySelector("[data-qa=guess-description]");
+    }
+    //====================================================================================
+    // Confetti animation -> https://www.cssscript.com/confetti-falling-animation/
+    window.confetti = {
+        maxCount: 30, //set max confetti count
+        speed: 1, //set the particle animation speed
+        frameInterval: 15, //the confetti animation frame interval in milliseconds
+        alpha: 1.0, //the alpha opacity of the confetti (between 0 and 1, where 1 is opaque and 0 is invisible)
+        gradient: false, //whether to use gradients for the confetti particles
+        start: null, //call to start confetti animation (with optional timeout in milliseconds, and optional min and max random confetti count)
+        stop: null, //call to stop adding confetti
+        toggle: null, //call to start or stop the confetti animation depending on whether it's already running
+        pause: null, //call to freeze confetti animation
+        resume: null, //call to unfreeze confetti animation
+        togglePause: null, //call to toggle whether the confetti animation is paused
+        remove: null, //call to stop the confetti animation and remove all confetti immediately
+        isPaused: null, //call and returns true or false depending on whether the confetti animation is paused
+        isRunning: null, //call and returns true or false depending on whether the animation is running
+    };
+
+    (function () {
+        confetti.start = startConfetti;
+        confetti.stop = stopConfetti;
+        confetti.toggle = toggleConfetti;
+        confetti.pause = pauseConfetti;
+        confetti.resume = resumeConfetti;
+        confetti.togglePause = toggleConfettiPause;
+        confetti.isPaused = isConfettiPaused;
+        confetti.remove = removeConfetti;
+        confetti.isRunning = isConfettiRunning;
+        var supportsAnimationFrame = window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame;
+        var colors = ["rgba(30,144,255,", "rgba(107,142,35,", "rgba(255,215,0,", "rgba(255,192,203,", "rgba(106,90,205,", "rgba(173,216,230,", "rgba(238,130,238,", "rgba(152,251,152,", "rgba(70,130,180,", "rgba(244,164,96,", "rgba(210,105,30,", "rgba(220,20,60,"];
+        var streamingConfetti = false;
+        var animationTimer = null;
+        var pause = false;
+        var lastFrameTime = Date.now();
+        var particles = [];
+        var waveAngle = 0;
+        var context = null;
+
+        function resetParticle(particle, width, height) {
+            particle.color = undefined;
+            particle.colorNum = (Math.random() * colors.length) | 0; //colors[(Math.random() * colors.length) | 0] + (confetti.alpha + ")");
+            particle.color2 = colors[(Math.random() * colors.length) | 0] + (confetti.alpha + ")");
+            particle.x = Math.random() * width;
+            particle.y = Math.random() * height - height;
+            particle.diameter = Math.random() * 10 + 5;
+            particle.tilt = Math.random() * 10 - 10;
+            particle.tiltAngleIncrement = Math.random() * 0.07 + 0.05;
+            particle.tiltAngle = Math.random() * Math.PI;
+            return particle;
+        }
+
+        function toggleConfettiPause() {
+            if (pause) resumeConfetti();
+            else pauseConfetti();
+        }
+
+        function isConfettiPaused() {
+            return pause;
+        }
+
+        function pauseConfetti() {
+            pause = true;
+        }
+
+        function resumeConfetti() {
+            pause = false;
+            runAnimation();
+        }
+
+        function runAnimation() {
+            if (pause) return;
+            else if (particles.length === 0) {
+                context.clearRect(0, 0, window.innerWidth, window.innerHeight);
+                animationTimer = null;
+            } else {
+                var now = Date.now();
+                var delta = now - lastFrameTime;
+                if (!supportsAnimationFrame || delta > confetti.frameInterval) {
+                    context.clearRect(0, 0, window.innerWidth, window.innerHeight);
+                    updateParticles();
+                    drawParticles(context);
+                    lastFrameTime = now - (delta % confetti.frameInterval);
+                }
+                animationTimer = requestAnimationFrame(runAnimation);
+            }
+        }
+
+        function startConfetti(timeout, min, max) {
+            var width = window.innerWidth * 0.6;
+            var height = window.innerHeight * 0.9;
+            window.requestAnimationFrame = (function () {
+                return (
+                    window.requestAnimationFrame ||
+                    window.webkitRequestAnimationFrame ||
+                    window.mozRequestAnimationFrame ||
+                    window.oRequestAnimationFrame ||
+                    window.msRequestAnimationFrame ||
+                    function (callback) {
+                        return window.setTimeout(callback, confetti.frameInterval);
+                    }
+                );
+            })();
+            var canvas = document.getElementById("confetti-canvas");
+            if (canvas === null) {
+                canvas = document.createElement("canvas");
+                canvas.setAttribute("id", "confetti-canvas");
+                canvas.setAttribute("style", "display:block;z-index:999999;pointer-events:none;position:fixed;top:0px; left: 20%;");
+                document.body.prepend(canvas);
+                canvas.width = width;
+                canvas.height = height;
+                window.addEventListener(
+                    "resize",
+                    function () {
+                        canvas.width = window.innerWidth;
+                        canvas.height = window.innerHeight;
+                    },
+                    true
+                );
+                context = canvas.getContext("2d");
+            } else if (context === null) context = canvas.getContext("2d");
+            var count = confetti.maxCount;
+            if (min) {
+                if (max) {
+                    if (min == max) count = particles.length + max;
+                    else {
+                        if (min > max) {
+                            var temp = min;
+                            min = max;
+                            max = temp;
+                        }
+                        count = particles.length + ((Math.random() * (max - min) + min) | 0);
+                    }
+                } else count = particles.length + min;
+            } else if (max) count = particles.length + max;
+            while (particles.length < count) particles.push(resetParticle({}, width, height));
+            streamingConfetti = true;
+            pause = false;
+            runAnimation();
+            if (timeout) {
+                window.setTimeout(stopConfetti, timeout);
+            }
+        }
+
+        function stopConfetti() {
+            streamingConfetti = false;
+        }
+
+        function removeConfetti() {
+            stop();
+            pause = false;
+            particles = [];
+        }
+
+        function toggleConfetti() {
+            if (streamingConfetti) stopConfetti();
+            else startConfetti();
+        }
+
+        function isConfettiRunning() {
+            return streamingConfetti;
+        }
+
+        function drawParticles(context) {
+            var particle;
+            var x, y, x2, y2;
+            for (var i = 0; i < particles.length; i++) {
+                particle = particles[i];
+                context.beginPath();
+                context.lineWidth = particle.diameter / 2;
+                x2 = particle.x + particle.tilt;
+                x = x2 + particle.diameter / 2;
+                y2 = particle.y + particle.tilt + particle.diameter / 3;
+                if (confetti.gradient) {
+                    var gradient = context.createLinearGradient(x, particle.y, x2, y2);
+                    gradient.addColorStop("0", particle.color);
+                    gradient.addColorStop("1.0", particle.color2);
+                    context.strokeStyle = gradient;
+                } else context.strokeStyle = particle.color;
+                context.moveTo(x, particle.y);
+                context.lineTo(x2, y2);
+                context.stroke();
+            }
+        }
+
+        function updateParticles() {
+            var width = window.innerWidth * 0.6;
+            var height = window.innerHeight * 0.9;
+            var particle;
+            waveAngle += 0.01;
+            for (var i = 0; i < particles.length; i++) {
+                particle = particles[i];
+                if (!streamingConfetti && particle.y < -15) particle.y = height + 100;
+                else {
+                    particle.tiltAngle += particle.tiltAngleIncrement;
+                    particle.x += Math.sin(waveAngle) - 0.5;
+                    particle.y += (Math.cos(waveAngle) + particle.diameter + confetti.speed) * 0.3;
+                    particle.tilt = Math.sin(particle.tiltAngle) * 15;
+                    particle.color = colors[particle.colorNum] + (1 - particle.y / height + ")"); //particle.color.replace(/\d\.?\d?\d?\)/, particle.y/height + ')');
+                }
+                if (particle.x > width + 20 || particle.x < -20 || particle.y > height) {
+                    if (streamingConfetti && particles.length <= confetti.maxCount) resetParticle(particle, width, height);
+                    else {
+                        particles.splice(i, 1);
+                        i--;
+                    }
+                }
+            }
+        }
+    })();
 });
+// --------------------------------------------------------------------------------------
+
+function runAsClient(f) {
+    // Inject code to be run. This is needed (via toString) because functions
+    // created inside GreaseMonkey/TamperMonkey may be sandboxed, which gets
+    // awkward.
+    var s = document.createElement("script");
+    s.type = "text/javascript";
+    s.text = "(" + f.toString() + ")()";
+    document.body.appendChild(s);
+}
