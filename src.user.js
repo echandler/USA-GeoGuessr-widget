@@ -3,7 +3,7 @@
 // @namespace    GeoGuessr scripts
 // @version      5.0
 // @description  Interactive USA map for GeoGuessr.com.
-// @downloadURL  https://cdn.jsdelivr.net/gh/echandler/USA-GeoGuessr-widget/src.js
+// @downloadURL  https://cdn.jsdelivr.net/gh/echandler/USA-GeoGuessr-widget/src.user.js
 // @include      https://www.geoguessr.com/*
 // @run-at       document-idle
 // @license      MIT
