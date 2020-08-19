@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoGuessr USA widget
 // @namespace    GeoGuessr scripts
-// @version      6.0
+// @version      7.0
 // @description  Interactive USA map for GeoGuessr.com.
 // @downloadURL  https://cdn.jsdelivr.net/gh/echandler/USA-GeoGuessr-widget/src.js
 // @include      https://www.geoguessr.com/*
@@ -10,7 +10,7 @@
 // ==/UserScript==
 
 runAsClient(() => {
-    let showDebugPopups = true;
+    let showDebugPopups = false;
 
     let stateColors = {
         //https://www.designwizard.com/blog/design-trends/colour-combination
