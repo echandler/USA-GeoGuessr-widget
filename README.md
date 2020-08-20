@@ -3,9 +3,6 @@ Interactive USA map widget for GeoGuessr.com. When the player correctly selects 
 
 ### How to use:
 * Install greasemonkey or tampermonkey.
-#### Install via URL:
-* Click https://cdn.jsdelivr.net/gh/echandler/USA-GeoGuessr-widget/src.user.js , script should load automatically, if not continue on with next steps.
-#### Install manually:
 * Create a new script and delete the default contents.
 * Copy everything in src.user.js to the new script and then save the script.
 * Reload the GeoGuessr website.
