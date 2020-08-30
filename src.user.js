@@ -1,9 +1,8 @@
 // ==UserScript==
 // @name         GeoGuessr USA widget
 // @namespace    GeoGuessr scripts
-// @version      7.0
+// @version      8.0
 // @description  Interactive USA map for GeoGuessr.com.
-// @downloadURL  https://cdn.jsdelivr.net/gh/echandler/USA-GeoGuessr-widget/src.js
 // @include      https://www.geoguessr.com/*
 // @run-at       document-idle
 // @license      MIT
@@ -54,7 +53,7 @@ runAsClient(() => {
     svgUSAmap.setAttribute("id", "svg_usa");
     svgUSAmap.setAttributeNS("http://www.w3.org/2000/xmlns/", "xmlns:xlink", "http://www.w3.org/1999/xlink");
     svgUSAmap.setAttribute("viewBox", "0 0 950 600");
-    svgUSAmap.setAttribute("style", "pointer-events: all; transform-origin: left top;");
+    svgUSAmap.setAttribute("style", "pointer-events: all; transform-origin: left top; width: 125px; height: 85px; ");
 
     svgUSAmap.addEventListener("mousewheel", function (e) {
         if (!this.scale) this.scale = 1;
@@ -96,7 +95,6 @@ runAsClient(() => {
         .stateSelected {
             fill: ${stateColors.active};
         }
-
         .stateOnload {
             opacity: 0;
             stroke-dashoffset: 1000;
@@ -106,13 +104,11 @@ runAsClient(() => {
             animation-delay: 3s;
             animation-fill-mode: forwards;
         }
-
         @keyframes stateOpacityOnload {
             100% {
                 opacity: 1;
             }
         }
-
         @keyframes stateStrokeOnload {
             100%{
                 stroke-dashoffset: 0;
@@ -365,7 +361,7 @@ runAsClient(() => {
         let oldSetMap = google.maps.OverlayView.prototype.setMap;
         google.maps.OverlayView.prototype.setMap = function (...args) {
             let res = oldSetMap.apply(this, args);
-
+            console.log(this);
             let oldSetPos = this.setPosition;
             this.setPosition = (...args) => {
                 // setPosition is not a method in the OverlayView prototype.
@@ -431,62 +427,62 @@ runAsClient(() => {
             _localStorage("insert", name);
         });
 
-        google.maps.OverlayView.prototype._usaWidget.callbacks.push(function () {
-            if (!showDebugPopups) return;
+        //        google.maps.OverlayView.prototype._usaWidget.callbacks.push(function () {
+        //           if (showDebugPopups === false) return;
 
-            this.div.addEventListener("mouseover", (e) => {
-                let msg = document.getElementById("tempMsg");
-                if (!e.shiftKey && !msg) return;
-
-                if (!msg) {
-                    msg = document.createElement("div");
-                    msg.style.cssText = "z-index: 999999; position: fixed; top: 10px; left: 47%; background: white; padding: 10px;width: 10rem; word-break: break-word;";
-                    msg.id = "tempMsg";
-                    msg.closeTimer = null;
-
-                    msg.addEventListener("mousemove", function (e) {
-                        clearTimeout(this.closeTimer);
-                        this.closeTimer = setTimeout(
-                            function () {
-                                this.parentElement.removeChild(this);
-                            }.bind(this),
-                            5000
-                        );
-                    });
-
-                    document.body.appendChild(msg);
-
-                    var btn = document.createElement("div");
-                    btn.innerText = "Copy Coords";
-                    btn.style.cssText = "width: fit-content; font-size: 12px; cursor: pointer;";
-                    btn.addEventListener("click", function (e) {
-                        txt.select();
-                        document.execCommand("copy");
-                        txt.blur();
-                        txt.style.backgroundColor = "#aaaaaa";
-                        setTimeout(() => {
-                            txt.style.backgroundColor = "";
-                        }, 200);
-                    });
-
-                    var txt = document.createElement("textarea");
-                    txt.style.cssText = "resize: none; border: 0px;";
-
-                    var msc = document.createElement("div");
-
-                    msg.appendChild(txt);
-                    msg.txt = txt;
-                    msg.appendChild(btn);
-                    msg.appendChild(msc);
-                    msg.msc = msc;
-                }
-
-                msg.txt.value = this.position.lat() + ", " + this.position.lng();
-                msg.msc.innerText = this._data && this._data.address ? "State: " + this._data.address.state : "";
-                clearTimeout(msg.closeTimer);
-                msg.closeTimer = setTimeout(() => msg.parentElement.removeChild(msg), 5000);
-            });
-        });
+        //this.div.addEventListener("mouseover", (e) => {
+        //    let msg = document.getElementById("tempMsg");
+        //    if (!e.shiftKey && !msg) return;
+        //
+        //    if (!msg) {
+        //        msg = document.createElement("div");
+        //        msg.style.cssText = "z-index: 999999; position: fixed; top: 10px; left: 47%; background: white; padding: 10px;width: 10rem; word-break: break-word;";
+        //        msg.id = "tempMsg";
+        //        msg.closeTimer = null;
+        //
+        //        msg.addEventListener("mousemove", function (e) {
+        //            clearTimeout(this.closeTimer);
+        //            this.closeTimer = setTimeout(
+        //                function () {
+        //                    this.parentElement.removeChild(this);
+        //                }.bind(this),
+        //                5000
+        //            );
+        //        });
+        //
+        //        document.body.appendChild(msg);
+        //
+        //        var btn = document.createElement("div");
+        //        btn.innerText = "Copy Coords";
+        //        btn.style.cssText = "width: fit-content; font-size: 12px; cursor: pointer;";
+        //        btn.addEventListener("click", function (e) {
+        //            txt.select();
+        //            document.execCommand("copy");
+        //            txt.blur();
+        //            txt.style.backgroundColor = "#aaaaaa";
+        //            setTimeout(() => {
+        //                txt.style.backgroundColor = "";
+        //            }, 200);
+        //        });
+        //
+        //        var txt = document.createElement("textarea");
+        //        txt.style.cssText = "resize: none; border: 0px;";
+        //
+        //        var msc = document.createElement("div");
+        //
+        //        msg.appendChild(txt);
+        //        msg.txt = txt;
+        //        msg.appendChild(btn);
+        //        msg.appendChild(msc);
+        //        msg.msc = msc;
+        //    }
+        //
+        //    msg.txt.value = this.position.lat() + ", " + this.position.lng();
+        //    msg.msc.innerText = this._data && this._data.address ? "State: " + this._data.address.state : "";
+        //    clearTimeout(msg.closeTimer);
+        //    msg.closeTimer = setTimeout(() => msg.parentElement.removeChild(msg), 5000);
+        //});
+        // });
 
         return true;
     }
@@ -627,9 +623,13 @@ runAsClient(() => {
     }
 
     function isInUSA(lat, lng) {
-        let ne = [49.03419, -70.827284];
-        let sw = [24.37767, -124.966516];
-        return lat < ne[0] && lat > sw[0] && lng < ne[1] && lng > sw[1];
+        let nw = [49.976822, -126.499152];
+        let se = [22.58627, -65.668576];
+        let anw = [71.622491, -171.136009];
+        let ase = [51.740159, -128.19728];
+        let hnw = [22.590711, -160.725222];
+        let hse = [18.407992, -154.26821];
+        return (lat < nw[0] && lat > se[0] && lng > nw[1] && lng < se[1]) || (lat < anw[0] && lat > ase[0] && lng > anw[1] && lng < ase[1]) || (lat < hnw[0] && lat > hse[0] && lng > hnw[1] && lng < hse[1]);
     }
 
     function isPlayer(gobj) {
