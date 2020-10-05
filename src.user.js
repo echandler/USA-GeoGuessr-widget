@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoGuessr USA widget
 // @namespace    GeoGuessr scripts
-// @version      8.0
+// @version      8.1
 // @description  Interactive USA map for GeoGuessr.com.
 // @include      https://*geoguessr.com/*
 // @run-at       document-idle
