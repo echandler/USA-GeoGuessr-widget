@@ -3,7 +3,7 @@
 // @namespace    GeoGuessr scripts
 // @version      8.0
 // @description  Interactive USA map for GeoGuessr.com.
-// @include      https://www.geoguessr.com/*
+// @include      https://*geoguessr.com/*
 // @run-at       document-idle
 // @license      MIT
 // ==/UserScript==
