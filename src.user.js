@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         GeoGuessr USA widget
 // @namespace    GeoGuessr scripts
-// @version      8.1
+// @version      8.2
 // @description  Interactive USA map for GeoGuessr.com.
 // @include      https://*geoguessr.com/*
 // @run-at       document-idle
@@ -9,7 +9,7 @@
 // ==/UserScript==
 
 runAsClient(() => {
-    let showDebugPopups = false;
+    let showDebugPopups = true;
 
     let stateColors = {
         //https://www.designwizard.com/blog/design-trends/colour-combination
@@ -361,8 +361,8 @@ runAsClient(() => {
         let oldSetMap = google.maps.OverlayView.prototype.setMap;
         google.maps.OverlayView.prototype.setMap = function (...args) {
             let res = oldSetMap.apply(this, args);
-            console.log(this);
             let oldSetPos = this.setPosition;
+
             this.setPosition = (...args) => {
                 // setPosition is not a method in the OverlayView prototype.
                 let res = oldSetPos.apply(this, args);
@@ -427,62 +427,63 @@ runAsClient(() => {
             _localStorage("insert", name);
         });
 
-        //        google.maps.OverlayView.prototype._usaWidget.callbacks.push(function () {
-        //           if (showDebugPopups === false) return;
+        google.maps.OverlayView.prototype._usaWidget.callbacks.push(function () {
+            // Hold shift key over one of the markers to show debug info.
+           if (showDebugPopups === false) return;
 
-        //this.div.addEventListener("mouseover", (e) => {
-        //    let msg = document.getElementById("tempMsg");
-        //    if (!e.shiftKey && !msg) return;
-        //
-        //    if (!msg) {
-        //        msg = document.createElement("div");
-        //        msg.style.cssText = "z-index: 999999; position: fixed; top: 10px; left: 47%; background: white; padding: 10px;width: 10rem; word-break: break-word;";
-        //        msg.id = "tempMsg";
-        //        msg.closeTimer = null;
-        //
-        //        msg.addEventListener("mousemove", function (e) {
-        //            clearTimeout(this.closeTimer);
-        //            this.closeTimer = setTimeout(
-        //                function () {
-        //                    this.parentElement.removeChild(this);
-        //                }.bind(this),
-        //                5000
-        //            );
-        //        });
-        //
-        //        document.body.appendChild(msg);
-        //
-        //        var btn = document.createElement("div");
-        //        btn.innerText = "Copy Coords";
-        //        btn.style.cssText = "width: fit-content; font-size: 12px; cursor: pointer;";
-        //        btn.addEventListener("click", function (e) {
-        //            txt.select();
-        //            document.execCommand("copy");
-        //            txt.blur();
-        //            txt.style.backgroundColor = "#aaaaaa";
-        //            setTimeout(() => {
-        //                txt.style.backgroundColor = "";
-        //            }, 200);
-        //        });
-        //
-        //        var txt = document.createElement("textarea");
-        //        txt.style.cssText = "resize: none; border: 0px;";
-        //
-        //        var msc = document.createElement("div");
-        //
-        //        msg.appendChild(txt);
-        //        msg.txt = txt;
-        //        msg.appendChild(btn);
-        //        msg.appendChild(msc);
-        //        msg.msc = msc;
-        //    }
-        //
-        //    msg.txt.value = this.position.lat() + ", " + this.position.lng();
-        //    msg.msc.innerText = this._data && this._data.address ? "State: " + this._data.address.state : "";
-        //    clearTimeout(msg.closeTimer);
-        //    msg.closeTimer = setTimeout(() => msg.parentElement.removeChild(msg), 5000);
-        //});
-        // });
+           this.div.addEventListener("mouseover", (e) => {
+               let msg = document.getElementById("tempMsg");
+               if (!e.shiftKey && !msg) return;
+
+               if (!msg) {
+                   msg = document.createElement("div");
+                   msg.style.cssText = "z-index: 999999; position: fixed; top: 10px; left: 47%; background: white; padding: 10px;width: 10rem; word-break: break-word;";
+                   msg.id = "tempMsg";
+                   msg.closeTimer = null;
+
+                   msg.addEventListener("mousemove", function (e) {
+                       clearTimeout(this.closeTimer);
+                       this.closeTimer = setTimeout(
+                           function () {
+                               this.parentElement.removeChild(this);
+                           }.bind(this),
+                           5000
+                       );
+                   });
+
+                   document.body.appendChild(msg);
+
+                   var btn = document.createElement("div");
+                   btn.innerText = "Copy Coords";
+                   btn.style.cssText = "width: fit-content; font-size: 12px; cursor: pointer;";
+                   btn.addEventListener("click", function (e) {
+                       txt.select();
+                       document.execCommand("copy");
+                       txt.blur();
+                       txt.style.backgroundColor = "#aaaaaa";
+                       setTimeout(() => {
+                           txt.style.backgroundColor = "";
+                       }, 200);
+                   });
+
+                   var txt = document.createElement("textarea");
+                   txt.style.cssText = "resize: none; border: 0px;";
+
+                   var msc = document.createElement("div");
+
+                   msg.appendChild(txt);
+                   msg.txt = txt;
+                   msg.appendChild(btn);
+                   msg.appendChild(msc);
+                   msg.msc = msc;
+               }
+
+               msg.txt.value = this.position.lat() + ", " + this.position.lng();
+               msg.msc.innerText = this._data && this._data.address ? "State: " + this._data.address.state : "";
+               clearTimeout(msg.closeTimer);
+               msg.closeTimer = setTimeout(() => msg.parentElement.removeChild(msg), 5000);
+           });
+        });
 
         return true;
     }
@@ -865,3 +866,40 @@ function runAsClient(f) {
     s.text = "(" + f.toString() + ")()";
     document.body.appendChild(s);
 }
+
+/*
+// Run in console to test reverse lookup server.
+var t = [
+[63.588753,-154.493062	,"Alaska"], [32.318231,-86.902298	,"Alabama"], [35.20105 , -91.831833	,"Arkansas"],
+[34.048928,-111.093731	,"Arizona"], [36.778261,-119.417932	,"California"], [39.550051,-105.782067	,"Colorado"],
+[41.603221,-73.087749	,"Connecticut"], [38.905985,-77.033418	,"District of Columbia"], [38.910832,-75.52767	,"Delaware"],
+[27.664827,-81.515754	,"Florida"], [32.157435,-82.907123	,"Georgia"], [19.898682,-155.665857	,"Hawaii"],
+[41.878003,-93.097702	,"Iowa"], [44.068202,-114.742041	,"Idaho"], [40.633125,-89.398528	,"Illinois"],
+[40.551217,-85.602364	,"Indiana"], [39.011902,-98.484246	,"Kansas"], [37.839333,-84.270018	,"Kentucky"],
+[31.244823,-92.145024	,"Louisiana"], [42.407211,-71.382437	,"Massachusetts"], [39.045755,-76.641271	,"Maryland"],
+[45.253783,-69.445469	,"Maine"], [44.314844,-85.602364	,"Michigan"], [46.729553,-94.6859	,"Minnesota"],
+[37.964253,-91.831833	,"Missouri"], [32.354668,-89.398528	,"Mississippi"], [46.879682,-110.362566	,"Montana"],
+[35.759573,-79.0193	,"North Carolina"], [47.551493,-101.002012	,"North Dakota"], [41.492537,-99.901813	,"Nebraska"],
+[43.193852,-71.572395	,"New Hampshire"], [40.058324,-74.405661	,"New Jersey"], [34.97273 , -105.032363	,"New Mexico"],
+[38.80261 , -116.419389	,"Nevada"], [43.299428,-74.217933	,"New York"], [40.417287,-82.907123	,"Ohio"],
+[35.007752,-97.092877	,"Oklahoma"], [43.804133,-120.554201	,"Oregon"], [41.203322,-77.194525	,"Pennsylvania"],
+[18.220833,-66.590149	,"Puerto Rico"], [41.580095,-71.477429	,"Rhode Island"], [33.836081,-81.163725	,"South Carolina"],
+[43.969515,-99.901813	,"South Dakota"], [35.517491,-86.580447	,"Tennessee"], [31.968599,-99.901813	,"Texas"],
+[39.32098 , -111.093731	,"Utah"], [37.431573,-78.656894	,"Virginia"], [44.558803,-72.577841	,"Vermont"],
+[47.751074,-120.740139	,"Washington"], [43.78444 , -88.787868	,"Wisconsin"], [38.597626,-80.454903	,"West Virginia"],
+[43.075968,-107.290284	,"Wyoming"]
+];
+
+var z = 0;
+t.forEach(function(arr){
+    setTimeout(function(){
+        let url = `https://nominatim.openstreetmap.org/reverse.php?format=json&zoom=5&
+                                   lat=${arr[0]}&
+                                   lon=${arr[1]}`;
+        fetch(url).then(function(a){ return a.json();}).then(function(a){
+                 console.log(a.address.state, arr[2], a.address.state == arr[2]);
+        });
+    }, z);
+    z += 700;
+});
+*/
